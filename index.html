@@ -22,14 +22,12 @@
             --success-color: #10b981; /* Emerald 500 */
             --error-color: #ef4444; /* Red 500 */
             
-            /* 👇 關鍵修改在這裡：字體順序設定 👇 */
             /* 瀏覽器會從左讀到右：源泉圓體優先 -> Chiron GoRound TC 備用 -> 最後用微軟正黑體或系統預設 */
             --main-font: 'GenSenRounded TW', 'Chiron GoRound TC', 'Microsoft JhengHei', sans-serif;
         }
 
         body {
             font-family: var(--main-font);
-            /* 👇 加上你提到的 Google Fonts 視覺微調屬性 👇 */
             font-optical-sizing: auto;
             
             background-color: #f0fdf4;
@@ -215,7 +213,6 @@
         }
     </style>
 </head>
-<!-- 加入 oncontextmenu="return false;" 禁止右鍵選單 -->
 <body class="min-h-screen p-4 pb-12" oncontextmenu="return false;">
 
     <!-- Completion Overlay -->
@@ -263,7 +260,6 @@
         <div id="container-exercises" class="space-y-8"></div>
 
         <!-- Footer / Citation -->
-        <!-- 移除 font-sans 以繼承 body 的字體，並設定整體文字大小較小 -->
         <footer class="mt-16 mb-8 text-center">
             <div class="max-w-xl mx-auto px-4 space-y-1">
                 <p class="text-gray-600 font-medium text-sm">原版工具：米克師；延伸開發：金魚老師</p>
@@ -278,10 +274,11 @@
     </div>
 
     <script>
-        // --- DATA (替換為跳水的內容) ---
+        // --- DATA ---
         const exercises = [
             {
                 id: 'q1',
+                // answer 保持乾淨，用來做文字比對
                 answer: '從十米高臺陶醉於下面的湛藍在跳板與水面之間描畫出從容的曲線讓青春去激起一片雪白的讚嘆',
                 chunks: ['從十米高臺', '陶醉於下面的湛藍', '在跳板與水面之間', '描畫出從容的曲線', '讓青春去激起', '一片雪白的讚嘆']
             }
@@ -291,27 +288,23 @@
         const totalCount = exercises.length;
         const synth = window.speechSynthesis;
 
-        // 用於判斷目前是否正在拖曳，防止放開滑鼠/手指時誤觸點擊事件
         window.isDraggingItem = false;
 
-        // 預先載入語音引擎以確保高階語音可用
         if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = () => synth.getVoices();
         }
 
         // --- FUNCTIONS ---
 
-        function speak(text, lang = 'zh-TW', rate = 0.95) {
-            // 🛡️ 語音引擎相容性與空字串防護
+        function speak(text, lang = 'zh-TW', rate = 1.0) {
             if (!text || !synth) return; 
 
             synth.cancel();
             
             const utterThis = new SpeechSynthesisUtterance(text);
             utterThis.lang = lang;
-            utterThis.rate = rate;
+            utterThis.rate = rate; // 這裡的速率會依照傳入的參數動態調整
 
-            // 👇 加入高階語音引擎設定，優先抓取 Google 國語 👇
             const voices = synth.getVoices();
             const preferredVoice = voices.find(v => v.name.includes('Google') && (v.lang === 'zh-TW' || v.lang === 'zh-HK' || v.lang === 'zh-CN')) 
                                 || voices.find(v => v.lang === 'zh-TW') 
@@ -335,7 +328,9 @@
 
                 const shuffledWords = [...ex.chunks].sort(() => Math.random() - 0.5);
 
-                // 移除了「第幾題」的標題區塊
+                // 在 data-text 中使用 join('，') 加入逗號，讓語音可以斷句，但畫面不會顯示
+                const speechText = ex.chunks.join('，').replace(/"/g, '&quot;');
+
                 card.innerHTML = `
                     <!-- Word Bank -->
                     <div class="word-bank flex flex-wrap gap-3 mb-6 justify-center" id="bank-${ex.id}">
@@ -349,7 +344,7 @@
                     <div class="flex flex-wrap items-center gap-3 mt-2">
                         <button class="btn-action check-btn bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-md border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1 transition-all text-lg flex-grow sm:flex-grow-0" data-id="${ex.id}">檢查答案</button>
                         <button class="btn-action reset-btn bg-white hover:bg-gray-50 text-gray-600 border-2 border-gray-300 border-b-4 font-bold py-3 px-6 rounded-xl active:border-b-2 active:translate-y-1 transition-all text-lg" data-id="${ex.id}">重置</button>
-                        <button class="btn-action hint-btn bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold py-3 px-6 rounded-xl border-b-4 border-amber-300 active:border-b-0 active:translate-y-1 transition-all flex items-center gap-2 text-lg ml-auto" data-text="${ex.answer.replace(/"/g, '&quot;')}">
+                        <button class="btn-action hint-btn bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold py-3 px-6 rounded-xl border-b-4 border-amber-300 active:border-b-0 active:translate-y-1 transition-all flex items-center gap-2 text-lg ml-auto" data-text="${speechText}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" /></svg>
                             聽解答
                         </button>
@@ -359,42 +354,31 @@
 
                 container.appendChild(card);
 
-                // 畫面渲染完成後，為每一個「作答區」初始化拖曳排序功能 (SortableJS)
                 const zone = document.getElementById(`zone-${ex.id}`);
                 const feedbackEl = card.querySelector('.feedback');
                 
                 new Sortable(zone, {
-                    animation: 150,           // 拖曳時的動畫效果速度
-                    ghostClass: 'sortable-ghost', // 拖曳時下方佔位符的 CSS class
-                    dragClass: 'sortable-drag',   // 正在被拖曳元素的 CSS class
-                    delay: 150,               // 觸控裝置需長按 150 毫秒才能拖曳 (防止誤觸與干擾滑動)
-                    delayOnTouchOnly: true,   // 滑鼠可直接拖曳，僅觸控裝置需要延遲
+                    animation: 150,           
+                    ghostClass: 'sortable-ghost', 
+                    dragClass: 'sortable-drag',   
+                    delay: 150,               
+                    delayOnTouchOnly: true,   
 
-                    // 開始拖曳時的事件
                     onStart: function (evt) {
-                        // 標記全域變數為拖曳中，這樣就能有效防止放開時觸發 click 事件
                         window.isDraggingItem = true;
                     },
                     
-                    // 結束拖曳時的事件
                     onEnd: function (evt) {
-                        // 如果有改變位置（即使在同一個容器內調整順序）
                         if (evt.oldIndex !== evt.newIndex) {
-                            // 清除視覺狀態
                             feedbackEl.textContent = '';
                             zone.classList.remove('correct', 'incorrect');
                             
-                            // 如果這題原本已經答對，就要取消它的完成狀態並扣除進度
                             if (zone.dataset.completed) {
                                 delete zone.dataset.completed;
                                 updateProgress(-1);
                             }
                         }
 
-                        // 🛡️ 拖曳狀態卡死防護：
-                        // 稍微延遲解除拖曳狀態 (100毫秒)。
-                        // 這樣能完美蓋過滑鼠/手指鬆開瞬間系統判定產生的 Click 事件，
-                        // 同時也能確保即使遇到邊緣滑動等系統手勢中斷拖曳，狀態依然會被重置解鎖。
                         setTimeout(() => { 
                             window.isDraggingItem = false; 
                         }, 100);
@@ -407,9 +391,8 @@
         document.body.addEventListener('click', (e) => {
             const target = e.target;
 
-            // 1. Word Item Click (Chinese blocks)
+            // 1. Word Item Click
             if (target.classList.contains('word-item')) {
-                // 🛡️ 拖曳防誤觸判斷：如果系統判定目前正在拖曳中，則取消點擊動作
                 if (window.isDraggingItem) return;
 
                 const card = target.closest('.exercise-card');
@@ -418,7 +401,6 @@
                 const bank = document.getElementById(`bank-${exId}`);
                 const zone = document.getElementById(`zone-${exId}`);
 
-                // Speak in Chinese
                 speak(target.innerText, 'zh-TW', 1.0);
 
                 if (target.parentElement === bank) {
@@ -427,13 +409,10 @@
                     bank.appendChild(target);
                 }
 
-                // Reset state
                 const feedbackEl = card.querySelector('.feedback');
                 feedbackEl.textContent = '';
                 zone.classList.remove('correct', 'incorrect');
 
-                // 👇 修復 Bug 的地方 👇
-                // 如果這題原本已經答對，但現在被移動了任何一塊，就要取消它的完成狀態並扣除進度
                 if (zone.dataset.completed) {
                     delete zone.dataset.completed;
                     updateProgress(-1);
@@ -460,7 +439,8 @@
             if (target.closest('.hint-btn')) {
                 const btn = target.closest('.hint-btn');
                 const text = btn.dataset.text;
-                speak(text, 'zh-TW', 0.85);
+                // 將這裡的語速設定為 0.7 倍速
+                speak(text, 'zh-TW', 0.7);
                 return;
             }
         });
@@ -513,7 +493,6 @@
             
             const rawWords = Array.from(zone.children).map(el => el.innerText);
             
-            // Join without spaces for Chinese sentence comparison
             let userSentence = rawWords.join('');
             let correctAnswer = exData.answer;
 
@@ -571,7 +550,7 @@
 
             if (completedCount === totalCount) {
                 bar.classList.remove('from-emerald-400', 'to-teal-400');
-                bar.classList.add('from-amber-400', 'to-orange-500'); // Celebration color
+                bar.classList.add('from-amber-400', 'to-orange-500'); 
                 showOverlay();
             } else {
                 bar.classList.add('from-emerald-400', 'to-teal-400');
@@ -579,7 +558,6 @@
             }
         }
 
-        // Init
         renderApp();
 
     </script>
