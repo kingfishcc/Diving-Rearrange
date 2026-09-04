@@ -1,0 +1,102 @@
+<!-- ... existing code ... -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跳水</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 SortableJS 實現拖曳排序功能 -->
+<!-- ... existing code ... -->
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-10 mt-6">
+            <div class="inline-block p-1 rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 mb-4">
+                <div class="bg-white rounded-full px-6 py-2">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 font-bold tracking-wide uppercase text-sm font-sans">Classic Chinese Literature</span>
+                </div>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2 leading-snug tracking-tight">
+                跳水
+                <span class="text-xl sm:text-2xl text-gray-600 font-bold mx-1 align-baseline">（作者：艾青）</span>
+                重組練習
+            </h1>
+            <p class="text-lg text-gray-600 font-bold tracking-wide mt-4">請將下方詩句重新排列成正確的課文段落</p>
+            
+            <!-- Progress -->
+            <div class="mt-6 max-w-xs mx-auto">
+                <div class="h-4 bg-gray-200 rounded-full overflow-hidden border border-gray-100">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+                <p class="text-sm text-gray-500 mt-2 text-center font-bold" id="progress-text">完成進度：0/1</p>
+            </div>
+        </header>
+
+        <!-- Exercise Container -->
+        <div id="container-exercises" class="space-y-8"></div>
+
+        <!-- Footer / Citation -->
+<!-- ... existing code ... -->
+    <script>
+        // --- DATA ---
+        const exercises = [
+            {
+                id: 'q1',
+                label: '',
+                answer: '從十米高臺，陶醉於下面的湛藍。在跳板與水面之間，描畫出從容的曲線。讓青春去激起，一片雪白的讚嘆。',
+                ttsText: '從十米高臺，陶醉於下面的湛藍。在跳板與水面之間，描畫出從容的曲線。讓青春去激起，一片雪白的讚嘆。',
+                chunks: ['從十米高臺，', '陶醉於下面的湛藍。', '在跳板與水面之間，', '描畫出從容的曲線。', '讓青春去激起，', '一片雪白的讚嘆。']
+            }
+        ];
+
+        // 用於判斷目前是否正在拖曳，防止放開滑鼠/手指時誤觸點擊事件
+        window.isDraggingItem = false;
+        
+        let completedCount = 0;
+        const totalCount = exercises.length;
+        const synth = window.speechSynthesis;
+
+        // --- FUNCTIONS ---
+
+        function speak(text, lang = 'zh-TW', rate = 0.90) {
+            // 🛡️ 語音引擎相容性與空字串防護
+            if (!text || !synth) return; 
+            
+            synth.cancel();
+
+            // 針對語音進行修正
+            let speechText = text;
+
+            const utterThis = new SpeechSynthesisUtterance(speechText);
+            utterThis.lang = lang;
+            utterThis.rate = rate; // 放慢語速讓新詩更有感覺
+            synth.speak(utterThis);
+        }
+
+        function renderApp() {
+            const container = document.getElementById('container-exercises');
+
+            exercises.forEach((ex) => {
+                const card = document.createElement('div');
+                card.className = 'exercise-card px-5 py-6 sm:px-8 sm:py-6';
+                card.id = `card-${ex.id}`;
+                card.dataset.id = ex.id;
+
+                const shuffledWords = [...ex.chunks].sort(() => Math.random() - 0.5);
+
+                // 只有當 label 有內容時才渲染標題區塊
+                const labelHTML = ex.label ? `
+                    <div class="mb-4 flex items-center gap-4">
+                        <h2 class="text-xl font-bold text-gray-700 tracking-wide">${ex.label}</h2>
+                    </div>
+                ` : '';
+
+                card.innerHTML = `
+                    ${labelHTML}
+                    
+                    <!-- Word Bank -->
+                    <div class="word-bank flex flex-wrap gap-3 mb-6 justify-center" id="bank-${ex.id}">
+                        ${shuffledWords.map(word => `<div class="word-item">${word}</div>`).join('')}
+                    </div>
+
+                    <!-- Drop Zone -->
+<!-- ... existing code ... -->
