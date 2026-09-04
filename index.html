@@ -1,12 +1,190 @@
-<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>跳水</title>
+    <title>跳水 重組練習</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- 引入 SortableJS 實現拖曳排序功能 -->
-<!-- ... existing code ... -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <!-- 引入 Font Awesome 用於圖標 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+            background-color: #f8fafc;
+            /* 淺灰色背景，清爽舒適 */
+            min-height: 100vh;
+            padding: 1.5rem 1rem;
+            color: #334155;
+        }
+
+        /* 隱藏捲軸但保留捲動功能 (適合字庫區如果內容太多) */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* 卡片容器樣式 */
+        .exercise-card {
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid #f1f5f9;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            margin-bottom: 2rem;
+            /* 提供足夠的內部留白 */
+        }
+
+        /* 單個文字區塊的共同樣式 */
+        .word-item {
+            background-color: #ffffff;
+            border: 2px solid #cbd5e1; /* 邊框顏色 */
+            border-radius: 0.75rem; /* 圓角 */
+            padding: 0.6rem 1.25rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #475569;
+            cursor: grab; /* 鼠標顯示為手掌 */
+            user-select: none; /* 防止選中文字 */
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* 輕微陰影 */
+            display: inline-block;
+            margin: 0.25rem;
+        }
+        
+        /* 懸浮效果 */
+        .word-item:hover {
+            border-color: #3b82f6; /* 滑鼠懸浮時邊框變藍 */
+            color: #1e3a8a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.15);
+        }
+
+        /* 拖曳中的樣式 */
+        .word-item.sortable-ghost {
+            opacity: 0.4;
+            background-color: #f1f5f9;
+            border-style: dashed;
+        }
+
+        .word-item.sortable-drag {
+            cursor: grabbing !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            background-color: white;
+            z-index: 50;
+        }
+
+        /* 存放文字區塊的區域 */
+        .word-bank {
+            min-height: 80px;
+            padding: 1rem;
+            border-radius: 1rem;
+            background-color: #f8fafc; /* 淺灰色背景 */
+            border: 2px dashed #e2e8f0; /* 虛線邊框 */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-content: flex-start; /* 讓內容靠上對齊 */
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        /* 當拖曳項目進入放置區的樣式 */
+        .word-bank.drag-over {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        /* 作答區（放置區） */
+        .drop-zone {
+            min-height: 120px;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            background-color: #ffffff;
+            border: 2px dashed #cbd5e1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-content: flex-start;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #10b981; /* 綠色邊框表示可放置 */
+            background-color: #f0fdf4; /* 淺綠色背景 */
+        }
+
+        /* 當作答區為空時顯示提示文字 */
+        .drop-zone:empty::before {
+            content: '請將上方的詩句拖曳到這裡排列';
+            color: #94a3b8;
+            font-style: italic;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none; /* 防止提示文字干擾拖曳 */
+            font-size: 1.1rem;
+        }
+
+        /* 狀態標籤樣式 */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-badge.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .status-correct {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .status-wrong {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        /* 慶祝動畫特效 */
+        @keyframes pop {
+            0% { transform: scale(0.9); opacity: 0; }
+            40% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .celebrate {
+            animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            border-color: #10b981 !important; /* 強制變綠邊框 */
+            background-color: #f0fdf4 !important; /* 強制變綠背景 */
+        }
+        
+        /* 隱藏元素用 */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-teal-200 selection:text-teal-900">
+
     <div class="max-w-3xl mx-auto">
         <!-- Header -->
         <header class="text-center mb-10 mt-6">
@@ -20,7 +198,7 @@
                 <span class="text-xl sm:text-2xl text-gray-600 font-bold mx-1 align-baseline">（作者：艾青）</span>
                 重組練習
             </h1>
-            <p class="text-lg text-gray-600 font-bold tracking-wide mt-4">請將下方詩句重新排列成正確的課文段落</p>
+            <p class="text-lg text-gray-600 font-bold tracking-wide mt-4">請將下方詩句重新排列成正確的課文順序</p>
             
             <!-- Progress -->
             <div class="mt-6 max-w-xs mx-auto">
@@ -35,52 +213,57 @@
         <div id="container-exercises" class="space-y-8"></div>
 
         <!-- Footer / Citation -->
-<!-- ... existing code ... -->
+        <footer class="mt-16 text-center text-gray-400 text-sm pb-8 border-t border-gray-200 pt-8">
+            <p class="mb-2">網頁設計與開發：Yu-Hsuan, Chu</p>
+            <p>本教材僅供教學使用，如需引用請註明出處。</p>
+        </footer>
+    </div>
+
     <script>
         // --- DATA ---
+        // 定義題目資料：移除所有標點符號，不設定 label (因為只有一段)
         const exercises = [
             {
                 id: 'q1',
-                label: '',
+                label: '', 
                 answer: '從十米高臺陶醉於下面的湛藍在跳板與水面之間描畫出從容的曲線讓青春去激起一片雪白的讚嘆',
-                ttsText: '從十米高臺陶醉於下面的湛藍在跳板與水面之間描畫出從容的曲線讓青春去激起一片雪白的讚嘆',
+                ttsText: '從十米高臺 陶醉於下面的湛藍 在跳板與水面之間 描畫出從容的曲線 讓青春去激起 一片雪白的讚嘆',
                 chunks: ['從十米高臺', '陶醉於下面的湛藍', '在跳板與水面之間', '描畫出從容的曲線', '讓青春去激起', '一片雪白的讚嘆']
             }
         ];
 
-        // 用於判斷目前是否正在拖曳，防止放開滑鼠/手指時誤觸點擊事件
+        // 狀態管理
         window.isDraggingItem = false;
-        
         let completedCount = 0;
         const totalCount = exercises.length;
         const synth = window.speechSynthesis;
 
         // --- FUNCTIONS ---
 
+        // 語音朗讀功能
         function speak(text, lang = 'zh-TW', rate = 0.90) {
             // 🛡️ 語音引擎相容性與空字串防護
             if (!text || !synth) return; 
             
-            synth.cancel();
+            synth.cancel(); // 停止先前的朗讀
 
-            // 針對語音進行修正
-            let speechText = text;
-
-            const utterThis = new SpeechSynthesisUtterance(speechText);
+            const utterThis = new SpeechSynthesisUtterance(text);
             utterThis.lang = lang;
-            utterThis.rate = rate; // 放慢語速讓新詩更有感覺
+            utterThis.rate = rate; // 稍微放慢語速，適合詩詞
             synth.speak(utterThis);
         }
 
+        // 渲染整個應用程式
         function renderApp() {
             const container = document.getElementById('container-exercises');
 
             exercises.forEach((ex) => {
                 const card = document.createElement('div');
-                card.className = 'exercise-card px-5 py-6 sm:px-8 sm:py-6';
+                card.className = 'exercise-card px-5 py-6 sm:px-8 sm:py-6 relative';
                 card.id = `card-${ex.id}`;
                 card.dataset.id = ex.id;
 
+                // 打亂字卡順序
                 const shuffledWords = [...ex.chunks].sort(() => Math.random() - 0.5);
 
                 // 只有當 label 有內容時才渲染標題區塊
@@ -93,10 +276,204 @@
                 card.innerHTML = `
                     ${labelHTML}
                     
-                    <!-- Word Bank -->
+                    <!-- Word Bank (字庫區) -->
                     <div class="word-bank flex flex-wrap gap-3 mb-6 justify-center" id="bank-${ex.id}">
                         ${shuffledWords.map(word => `<div class="word-item">${word}</div>`).join('')}
                     </div>
 
-                    <!-- Drop Zone -->
-<!-- ... existing code ... -->
+                    <!-- Drop Zone (作答區) -->
+                    <div class="mb-6 relative">
+                        <div class="flex justify-between items-center mb-2 px-1">
+                            <span class="text-sm font-semibold text-gray-500 tracking-wider uppercase">Your Answer</span>
+                        </div>
+                        <div class="drop-zone" id="drop-${ex.id}"></div>
+                    </div>
+
+                    <!-- Controls (控制按鈕與狀態) -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+                        
+                        <!-- 檢查按鈕與朗讀按鈕組 -->
+                        <div class="flex gap-3 w-full sm:w-auto">
+                            <!-- 檢查答案按鈕 -->
+                            <button id="check-btn-${ex.id}" 
+                                class="flex-1 sm:flex-none group relative inline-flex items-center justify-center gap-2 px-6 py-2.5 font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden">
+                                <span class="relative z-10 flex items-center gap-2">
+                                    <i class="fa-solid fa-check"></i>
+                                    <span>檢查答案</span>
+                                </span>
+                            </button>
+                            
+                            <!-- 語音朗讀按鈕 (預設隱藏，答對後顯示) -->
+                            <button id="tts-btn-${ex.id}"
+                                class="hidden flex-1 sm:flex-none group inline-flex items-center justify-center gap-2 px-6 py-2.5 font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-all duration-200 shadow-sm">
+                                <i class="fa-solid fa-volume-high text-blue-500"></i>
+                                <span>朗讀</span>
+                            </button>
+                        </div>
+                        
+                        <!-- 狀態回饋徽章 -->
+                        <div id="status-${ex.id}" class="status-badge flex items-center gap-2">
+                            <i class="icon fa-solid"></i>
+                            <span class="text"></span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+                
+                // 初始化拖曳功能
+                initSortable(ex.id);
+                // 綁定按鈕事件
+                bindEvents(ex);
+            });
+        }
+
+        function initSortable(id) {
+            const bankEl = document.getElementById(`bank-${id}`);
+            const dropEl = document.getElementById(`drop-${id}`);
+
+            // 設定群組名稱，讓這兩個列表之間可以互相拖曳
+            const groupName = `shared-${id}`;
+
+            // 初始化字庫區的 Sortable
+            new Sortable(bankEl, {
+                group: groupName,
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onStart: () => { window.isDraggingItem = true; },
+                onEnd: () => { 
+                    setTimeout(() => { window.isDraggingItem = false; }, 100); 
+                    resetStatus(id); // 拖曳結束時重置狀態
+                }
+            });
+
+            // 初始化作答區的 Sortable
+            new Sortable(dropEl, {
+                group: groupName,
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onStart: () => { window.isDraggingItem = true; },
+                onEnd: () => { 
+                    setTimeout(() => { window.isDraggingItem = false; }, 100); 
+                    resetStatus(id); // 拖曳結束時重置狀態
+                }
+            });
+        }
+
+        function bindEvents(ex) {
+            const checkBtn = document.getElementById(`check-btn-${ex.id}`);
+            const ttsBtn = document.getElementById(`tts-btn-${ex.id}`);
+
+            // 綁定檢查按鈕點擊事件
+            checkBtn.addEventListener('click', () => checkAnswer(ex));
+            
+            // 綁定朗讀按鈕點擊事件
+            ttsBtn.addEventListener('click', () => {
+                // 添加點擊動畫效果
+                ttsBtn.style.transform = 'scale(0.95)';
+                setTimeout(() => ttsBtn.style.transform = 'scale(1)', 150);
+                speak(ex.ttsText);
+            });
+        }
+
+        // 隱藏/重置狀態標籤
+        function resetStatus(id) {
+            const statusEl = document.getElementById(`status-${id}`);
+            statusEl.classList.remove('show', 'status-correct', 'status-wrong');
+        }
+
+        // 顯示狀態回饋
+        function showStatus(id, isCorrect, message) {
+            const statusEl = document.getElementById(`status-${id}`);
+            const iconEl = statusEl.querySelector('.icon');
+            const textEl = statusEl.querySelector('.text');
+
+            statusEl.classList.remove('status-correct', 'status-wrong');
+            
+            if (isCorrect) {
+                statusEl.classList.add('status-correct');
+                iconEl.className = 'icon fa-solid fa-circle-check';
+            } else {
+                statusEl.classList.add('status-wrong');
+                iconEl.className = 'icon fa-solid fa-circle-xmark';
+            }
+
+            textEl.textContent = message;
+            statusEl.classList.add('show');
+        }
+
+        // 檢查答案邏輯
+        function checkAnswer(ex) {
+            const dropEl = document.getElementById(`drop-${ex.id}`);
+            const items = dropEl.querySelectorAll('.word-item');
+            
+            // 組合目前在作答區內的文字
+            let currentStr = '';
+            items.forEach(item => {
+                currentStr += item.textContent.trim();
+            });
+
+            // 驗證 1: 是否有拖曳所有的詞塊？
+            if (items.length < ex.chunks.length) {
+                showStatus(ex.id, false, '請將所有詞句都拖曳到作答區！');
+                return;
+            }
+
+            // 驗證 2: 順序是否完全正確？
+            if (currentStr === ex.answer) {
+                // 答對了
+                showStatus(ex.id, true, '太棒了！排列完全正確！');
+                
+                // 添加慶祝動畫到作答區
+                dropEl.classList.add('celebrate');
+                
+                // 鎖定操作：隱藏檢查按鈕，鎖定拖曳區塊，顯示朗讀按鈕
+                const checkBtn = document.getElementById(`check-btn-${ex.id}`);
+                const ttsBtn = document.getElementById(`tts-btn-${ex.id}`);
+                checkBtn.classList.add('hidden');
+                ttsBtn.classList.remove('hidden');
+                
+                // 停用拖曳 (將項目設為不可點擊)
+                items.forEach(item => {
+                    item.style.pointerEvents = 'none';
+                    item.style.cursor = 'default';
+                });
+                // 將字庫區設為不可點擊
+                const bankEl = document.getElementById(`bank-${ex.id}`);
+                bankEl.style.pointerEvents = 'none';
+
+                // 更新進度條
+                updateProgress();
+            } else {
+                // 答錯了
+                showStatus(ex.id, false, '順序好像不太對喔，再試試看！');
+            }
+        }
+
+        // 更新進度條
+        function updateProgress() {
+            completedCount++;
+            const percent = (completedCount / totalCount) * 100;
+            
+            const bar = document.getElementById('progress-bar');
+            const text = document.getElementById('progress-text');
+            
+            bar.style.width = `${percent}%`;
+            text.textContent = `完成進度：${completedCount}/${totalCount}`;
+            
+            if (completedCount === totalCount) {
+                text.textContent = '太厲害了！你已完成所有練習！';
+                text.classList.add('text-emerald-600', 'text-base');
+            }
+        }
+
+        // --- INIT ---
+        // 當網頁載入完成後執行
+        document.addEventListener('DOMContentLoaded', () => {
+            renderApp();
+        });
+
+    </script>
+</body>
+</html>
